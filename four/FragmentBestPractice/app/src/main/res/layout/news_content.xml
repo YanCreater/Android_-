@@ -1,0 +1,12 @@
+<LinearLayout xmlns:andriod="http://schemas.android.com/apk/res/android"
+    andriod:orientation="vertical"
+    andriod:layout_width="match_parent"
+    andriod:layout_height="match_parent">
+
+    <fragment
+        andriod:id="@+id/news_content_fragment"
+        andriod:name="com.example.fragmentbestpractice.NewsContentFragment"
+        andriod:layout_width="match_parent"
+        andriod:layout_height="match_parent"/>
+
+</LinearLayout>
