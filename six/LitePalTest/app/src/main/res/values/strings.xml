@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">LitePalTest</string>
+    <string name="add_data">添加数据</string>
+    <string name="updata">更新数据</string>
+    <string name="delete_data">删除数据</string>
+    <string name="query_data">查询数据</string>
+</resources>
