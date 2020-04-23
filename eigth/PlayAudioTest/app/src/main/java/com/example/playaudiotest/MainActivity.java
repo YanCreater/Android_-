@@ -27,9 +27,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         Button play=findViewById(R.id.play);
         Button pause=findViewById(R.id.pause);
         Button stop=findViewById(R.id.stop);
+
         play.setOnClickListener(this);
         pause.setOnClickListener(this);
         stop.setOnClickListener(this);
@@ -45,15 +47,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void initMediaPlayer(){
         try{
-            if(Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)){
-                File file=new File(Environment.getExternalStorageDirectory(),"music.mp3");
-                String path="/storage/emulated/0/1/music.mp3";
-                //
-                Log.d("AAA", "initMediaPlayer: "+path);
-                mediaPlayer.setDataSource(file.getPath());
-                mediaPlayer.setDataSource(path);
-                mediaPlayer.prepare();
-            }
+            File file = new File(Environment.getExternalStorageDirectory(),"/music.mp3");
+            Log.d("AAA", "initMediaPlayer: "+file.getPath());
+            mediaPlayer.setDataSource(file.getPath());
+            mediaPlayer.prepare();
         }catch (Exception e){
             e.printStackTrace();
         }
@@ -85,7 +82,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 if(!mediaPlayer.isPlaying()){
                     Log.d("AAA", "onClick: 点击");
                     mediaPlayer.start();
-                    Log.d("AAA", "onClick: ");
                 }
                 break;
             case R.id.pause:

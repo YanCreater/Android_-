@@ -10,6 +10,7 @@ import androidx.core.content.FileProvider;
 import android.Manifest;
 import android.annotation.TargetApi;
 import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -19,6 +20,7 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.util.Log;
@@ -29,6 +31,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
+import java.io.FileDescriptor;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
@@ -41,7 +44,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public  static final int TAKE_PHOTO=1;
     public static  final int CHOOSE_PHOTO=2;
     private ImageView picture;
-    private ImageView picture2;
     private Uri imageUri;
 
     @Override
@@ -50,7 +52,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
         Button takePhoto=findViewById(R.id.take_photo);
         Button chooseFromAlbum=findViewById(R.id.choose_from_photo);
-        picture2=findViewById(R.id.picture2);
         picture=findViewById(R.id.picture);
         takePhoto.setOnClickListener(this);
         chooseFromAlbum.setOnClickListener(this);
@@ -77,15 +78,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     imageUri=Uri.fromFile(outputImage);
                 }
 
-                Intent intent=new Intent("android.media.action.PICK");
+                Intent intent=new Intent("android.intent.action.PICK");
                 intent.putExtra(MediaStore.EXTRA_OUTPUT,imageUri);
                 startActivityForResult(intent,TAKE_PHOTO);
                 break;
 
                 //从相册中选择照片
             case R.id.choose_from_photo:
-                if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                    ActivityCompat.requestPermissions(MainActivity.this, new String[]{ Manifest.permission. WRITE_EXTERNAL_STORAGE }, 1);
+                if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                        != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(MainActivity.this,
+                            new String[]{ Manifest.permission. READ_EXTERNAL_STORAGE }, 1);
                 } else {
                     openAlbum();
                 }
@@ -101,11 +104,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         startActivityForResult(intent,CHOOSE_PHOTO);
     }
 
+
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         switch (requestCode) {
             case 1:
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(this, "已经成功授权", Toast.LENGTH_SHORT).show();
                     openAlbum();
                 } else {
                     Toast.makeText(this, "You denied the permission", Toast.LENGTH_SHORT).show();
@@ -156,7 +161,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             if("com.android.providers.media.documents".equals(uri.getAuthority())) {
                 Toast.makeText(this, "com.android.providers.media.documents", Toast.LENGTH_SHORT).show();
                 String id = docId.split(":")[1]; // 解析出数字格式的id
-                Log.d("AAA", "handleImageOnKitKat: "+id);
                 String selection = MediaStore.Images.Media._ID + "=" + id;
                 Log.d("AAA", "handleImageOnKitKat: "+selection);
                 imagePath = getImagePath(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, selection);
@@ -198,13 +202,55 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void displayImage(String imagePath) {
-        Log.d("AAA", "handleImageOnKitKat: "+imagePath);
+        Log.d("AAA", "displayImage: "+imagePath);
         if (imagePath != null) {
-            Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
-            picture2.setImageBitmap(bitmap);
-            Log.d("AAA", "handleImageOnKitKat: "+picture2.);
+            //Bitmap bitmap = getBitmapFromUri(this, getImageContentUri(this,imagePath));
+            //picture.setImageBitmap(bitmap);
+            Bitmap bitmap =BitmapFactory.decodeFile(imagePath);
+            picture.setImageBitmap(bitmap);
+            //picture.setImageURI(getImageContentUri(MainActivity.this,imagePath));
+            Log.d("AAA", "displayImage: "+picture);
         } else {
             Toast.makeText(this, "failed to get image", Toast.LENGTH_SHORT).show();
+        }
+    }
+    public static Bitmap getBitmapFromUri(Context context, Uri uri) {
+        try {
+            ParcelFileDescriptor parcelFileDescriptor =
+                    context.getContentResolver().openFileDescriptor(uri, "r");
+            FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
+            Bitmap image = BitmapFactory.decodeFileDescriptor(fileDescriptor);
+            parcelFileDescriptor.close();
+            return image;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
+     * 将图片转换成Uri
+     * @param context   传入上下文参数
+     * @param path      图片的路径
+     * @return      返回的就是一个Uri对象
+     */
+    public static Uri getImageContentUri(Context context, String path) {
+        Cursor cursor = context.getContentResolver().query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                new String[] { MediaStore.Images.Media._ID }, MediaStore.Images.Media.DATA + "=? ",
+                new String[] { path }, null);
+        if (cursor != null && cursor.moveToFirst()) {
+            int id = cursor.getInt(cursor.getColumnIndex(MediaStore.MediaColumns._ID));
+            Uri baseUri = Uri.parse("content://media/external/images/media");
+            return Uri.withAppendedPath(baseUri, "" + id);
+        } else {
+            // 如果图片不在手机的共享图片数据库，就先把它插入。
+            if (new File(path).exists()) {
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.Images.Media.DATA, path);
+                return context.getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+            } else {
+                return null;
+            }
         }
     }
 

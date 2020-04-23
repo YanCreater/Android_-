@@ -8,6 +8,9 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.xml.sax.InputSource;
@@ -22,6 +25,7 @@ import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.List;
 
 import javax.xml.parsers.SAXParserFactory;
 
@@ -54,6 +58,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    String url="http://10.24.39.97/get_data.json";
+    OkHttpClient client=new OkHttpClient();
+
+    private String Go(String url) throws IOException{
+        Request request=new Request.Builder()
+                .url(url)
+                .build();
+        try(Response response=client.newCall(request).execute()){
+            return response.body().string();
+        }
+    }
+
     private void sendRequestWithHttpURLConnect(){
         //开启线程来发起网络请求
         new Thread(new Runnable(){
@@ -62,7 +78,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 HttpURLConnection connection=null;
                 BufferedReader reader =null;
                 try{
-                    URL url=new URL("https://blog.csdn.net/lovelion/article/details/17517213");
+                    URL url=new URL("https://www.baidu.com");
                     connection=(HttpURLConnection) url.openConnection();
                     connection.setRequestMethod("GET");
                     connection.setConnectTimeout(8000);
@@ -99,19 +115,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void run() {
                 try{
-                    OkHttpClient client=new OkHttpClient();
-                    Request request=new Request.Builder()
-                            //.url("http://10.24.39.97/get_data.xml")
-                            .url("http://10.24.39.97/get_data.json")
-                            .build();
-                    Response response=client.newCall(request).execute();
-                    String responseData=response.body().string();
-                    parseXMLWithSAX(responseData);
-                    //两种解析XMl格式的方法
-                   // showResponse(responseData);
-                    //parseXMLWithPull(responseData);
+
+
+                    //showResponse( Go(url));
+//                            //.url("http://10.24.39.97/get_data.xml")
+//                            .url("http://www.baidu.com")
+//                            .build();
+//                    Response response=client.newCall(request).execute();
+//                    String responseData=response.body().string();
+                       // parseXMLWithSAX(Go(url));
+//                    //两种解析XMl格式的方法
+//                   showResponse(responseData);
+                    //parseXMLWithPull(Go(url));
                     //两种解析JSON格式的方法
-                    parseJSONWithJSONObject(responseData);
+                    //parseJSONWithJSONObject(Go(url));
+                    //使用GSON解析json文件
+                    parseJSONWithGSON(Go(url));
                 }catch (Exception e){
                     e.printStackTrace();
                 }
@@ -152,9 +171,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     }
                     case XmlPullParser.END_TAG:{
                         if("app".equals(nodeName)){
-                            Log.d("AAA", "id is :"+id);
-                            Log.d("AAA", "name is :"+name);
-                            Log.d("AAA", "version is :"+version);
+//                            Log.d("AAA", "id is :"+id);
+//                            Log.d("AAA", "name is :"+name);
+//                            Log.d("AAA", "version is :"+version);
+                            showResponse("id is :"+id+"\nname is :"+name+"\nversion is :"+version);
                         }
                         break;
                     }
@@ -196,5 +216,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }catch (Exception e){
             e.printStackTrace();
         }
+    }
+
+    private void parseJSONWithGSON(String jsonData){
+        Gson gson=new Gson();
+        List<App> appList=gson.fromJson(jsonData,new TypeToken<List<App>>(){}.getType());
+        for(App app:appList){
+
+            Log.d("AAAA", "parseJSONWithGSON: id is  "+app.getId());
+            Log.d("AAAA", "parseJSONWithGSON: name is  "+app.getName());
+            Log.d("AAAA", "parseJSONWithGSON:version is  "+app.getVersion());
+
+        }
+
     }
 }
